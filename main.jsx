@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import DetectionToolkit from './DetectionToolkit'; // Import komponen Anda
-import './index.css'; // Import CSS (yang berisi Tailwind)
+import DetectionToolkit from './DetectionToolkit'; // Komponen utama
+import './index.css'; // Memuat Tailwind CSS
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

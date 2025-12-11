@@ -17,10 +17,8 @@ const DetectionToolkit = () => {
     const streamRef = useRef(null);
     const detectionIntervalRef = useRef(null);
 
-    // Load model (simulated - in production would load actual TF.js model)
     const loadModel = async (modelType) => {
         setIsLoading(true);
-        // Simulate model loading
         await new Promise(resolve => setTimeout(resolve, 1500));
         console.log(`Model ${modelType} loaded.`);
         setIsLoading(false);
@@ -29,16 +27,12 @@ const DetectionToolkit = () => {
     useEffect(() => {
         loadModel(selectedModel);
         return () => {
-            // Cleanup interval on model change or unmount
             stopWebcam();
         };
     }, [selectedModel]);
 
-    // Mock detection function (replace with actual COCO-SSD or YOLO implementation)
     const detectObjects = async (imageElement) => {
-        // Simulated detection results
         const mockDetections = [
-            // BBOX format: [x, y, w, h] - assuming imageElement is 640x480 for webcam simulation
             { class: 'person', score: 0.92, bbox: [100, 50, 200, 300] },
             { class: 'car', score: 0.87, bbox: [300, 150, 180, 120] },
             { class: 'dog', score: 0.78, bbox: [50, 200, 150, 180] }
@@ -47,9 +41,8 @@ const DetectionToolkit = () => {
         return mockDetections;
     };
     
-    // Handle image upload
     const handleImageUpload = async (e) => {
-        stopWebcam(); // Stop webcam if running
+        stopWebcam();
         const file = e.target.files[0];
         if (!file) return;
 
@@ -63,7 +56,6 @@ const DetectionToolkit = () => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
                 
-                // Set canvas dimensions to image dimensions for accurate drawing
                 canvas.width = img.width;
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
@@ -75,16 +67,14 @@ const DetectionToolkit = () => {
                 updateStats(results);
                 saveToHistory(results, resultUrl);
                 setIsLoading(false);
-                e.target.value = null; // Clear file input
+                e.target.value = null;
             };
             img.src = resultUrl;
         };
         reader.readAsDataURL(file);
     };
 
-    // Start webcam
     const startWebcam = async () => {
-        // Clear previous image
         setImageUrl(null); 
         setDetections([]);
         
@@ -95,10 +85,8 @@ const DetectionToolkit = () => {
             streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                // Wait for video metadata to load to set canvas size
                 videoRef.current.onloadedmetadata = () => {
                     if (videoRef.current) {
-                        // Set video and canvas to a consistent size (640x480)
                         const videoWidth = videoRef.current.videoWidth || 640;
                         const videoHeight = videoRef.current.videoHeight || 480;
                         canvasRef.current.width = videoWidth;
@@ -116,7 +104,6 @@ const DetectionToolkit = () => {
         }
     };
 
-    // Stop webcam
     const stopWebcam = () => {
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
@@ -127,14 +114,12 @@ const DetectionToolkit = () => {
             detectionIntervalRef.current = null;
         }
         setIsDetecting(false);
-        // Clear canvas when stopping webcam
         if (canvasRef.current) {
              const ctx = canvasRef.current.getContext('2d');
              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
     };
 
-    // Continuous detection for video
     const startContinuousDetection = (width, height) => {
         if (detectionIntervalRef.current) {
             clearInterval(detectionIntervalRef.current);
@@ -145,7 +130,6 @@ const DetectionToolkit = () => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
                 
-                // Clear previous drawings and draw the current video frame
                 ctx.clearRect(0, 0, width, height);
                 ctx.drawImage(videoRef.current, 0, 0, width, height);
 
@@ -154,25 +138,20 @@ const DetectionToolkit = () => {
                 drawDetections(ctx, results, width, height);
                 updateStats(results);
             }
-        }, 100); // ~10 FPS
+        }, 100);
     };
 
-    // Draw detection boxes
     const drawDetections = (ctx, detections, width, height) => {
-        // Adjust font size based on canvas height for better visibility
         const fontSize = Math.max(12, Math.min(18, height / 30)); 
         ctx.strokeStyle = '#00FF00';
         ctx.lineWidth = 3;
         ctx.font = `${fontSize}px Arial`;
         
         detections.forEach(det => {
-            // bbox is [x, y, w, h] normalized to the drawing dimensions
             const [x, y, w, h] = det.bbox;
             
-            // Draw Bounding Box
             ctx.strokeRect(x, y, w, h);
             
-            // Draw Label Background
             const label = `${det.class} ${(det.score * 100).toFixed(1)}%`;
             const textWidth = ctx.measureText(label).width;
             const textHeight = fontSize + 4;
@@ -180,13 +159,11 @@ const DetectionToolkit = () => {
             ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
             ctx.fillRect(x, y > textHeight ? y - textHeight : y, textWidth + 10, textHeight);
             
-            // Draw Label Text
             ctx.fillStyle = '#000000';
             ctx.fillText(label, x + 5, y > textHeight ? y - 5 : y + textHeight - 5);
         });
     };
 
-    // Update statistics
     const updateStats = (results) => {
         const byClass = {};
         results.forEach(det => {
@@ -198,32 +175,27 @@ const DetectionToolkit = () => {
         });
     };
 
-    // Save to history
     const saveToHistory = (results, imgUrl) => {
         const historyItem = {
             id: Date.now(),
             timestamp: new Date().toLocaleString(),
             detections: results.length,
             classes: [...new Set(results.map(d => d.class))],
-            imageUrl: imgUrl // Note: Storing full URL might be heavy for real app
+            imageUrl: imgUrl
         };
-        // Keep only the latest 10 items
         setDetectionHistory(prev => [historyItem, ...prev].slice(0, 10)); 
     };
 
-    // Download results (image with boxes)
     const downloadResults = () => {
         const canvas = canvasRef.current;
         if (!canvas || detections.length === 0) return;
         
         const link = document.createElement('a');
         link.download = `detection_${Date.now()}.png`;
-        // Set a MIME type for PNG
         link.href = canvas.toDataURL('image/png'); 
         link.click();
     };
 
-    // Export detection data (JSON)
     const exportData = () => {
         if (detections.length === 0) return;
         
@@ -241,12 +213,10 @@ const DetectionToolkit = () => {
         link.href = url;
         link.download = `detection_data_${Date.now()}.json`;
         link.click();
-        URL.revokeObjectURL(url); // Clean up
+        URL.revokeObjectURL(url);
     };
 
-    // Determine the display style for the main view
     const displayStyle = imageUrl || isDetecting ? {} : { 
-        // Ensures the canvas takes up space even when empty for better layout
         width: '100%', height: '100%' 
     };
 
@@ -399,7 +369,6 @@ const DetectionToolkit = () => {
                                 {isDetecting && (
                                     <video 
                                         ref={videoRef}
-                                        // Hide the video element itself, drawing happens on canvas
                                         className="absolute top-0 left-0"
                                         style={{ visibility: 'hidden', width: '100%', height: '100%', objectFit: 'contain' }}
                                         playsInline 
