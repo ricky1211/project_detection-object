@@ -1,6 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Play, Square, Download, Trash2, Settings } from 'lucide-react';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import DetectionToolkit from './DetectionToolkit.jsx'; // ✅ Dengan .jsx
+import './index.css';
 
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <DetectionToolkit />
+  </React.StrictMode>,
+);
 const DetectionToolkit = () => {
     const [selectedModel, setSelectedModel] = useState('coco-ssd');
     const [isLoading, setIsLoading] = useState(false);
