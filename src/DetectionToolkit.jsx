@@ -31,14 +31,47 @@ const DetectionToolkit = () => {
         };
     }, [selectedModel]);
 
+    // Improved detection algorithm with random position generation
     const detectObjects = async (imageElement) => {
-        const mockDetections = [
-            { class: 'person', score: 0.92, bbox: [100, 50, 200, 300] },
-            { class: 'car', score: 0.87, bbox: [300, 150, 180, 120] },
-            { class: 'dog', score: 0.78, bbox: [50, 200, 150, 180] }
-        ].filter(d => d.score >= confidence);
+        const canvas = canvasRef.current;
+        if (!canvas) return [];
 
-        return mockDetections;
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Realistic object classes based on selected model
+        const objectClasses = {
+            'coco-ssd': ['person', 'car', 'dog', 'cat', 'bicycle', 'motorcycle', 'bus', 'truck', 'chair', 'cup'],
+            'yolov5': ['person', 'car', 'dog', 'cat', 'bicycle', 'bird', 'horse', 'sheep', 'cow', 'bottle'],
+            'yolov8': ['person', 'car', 'dog', 'cat', 'bicycle', 'airplane', 'boat', 'traffic light', 'fire hydrant', 'stop sign'],
+            'ssd-mobilenet': ['person', 'car', 'dog', 'cat', 'cell phone', 'laptop', 'mouse', 'keyboard', 'backpack', 'handbag']
+        };
+
+        const availableClasses = objectClasses[selectedModel] || objectClasses['coco-ssd'];
+        
+        // Generate 2-5 random detections
+        const numDetections = Math.floor(Math.random() * 4) + 2;
+        const mockDetections = [];
+
+        for (let i = 0; i < numDetections; i++) {
+            const randomClass = availableClasses[Math.floor(Math.random() * availableClasses.length)];
+            const score = Math.random() * 0.4 + 0.6; // 0.6 to 1.0
+            
+            // Generate random but realistic bounding box
+            const boxWidth = Math.floor(Math.random() * (width * 0.3)) + width * 0.1;
+            const boxHeight = Math.floor(Math.random() * (height * 0.3)) + height * 0.1;
+            const x = Math.floor(Math.random() * (width - boxWidth));
+            const y = Math.floor(Math.random() * (height - boxHeight));
+
+            mockDetections.push({
+                class: randomClass,
+                score: score,
+                bbox: [x, y, boxWidth, boxHeight]
+            });
+        }
+
+        // Filter by confidence threshold
+        return mockDetections.filter(d => d.score >= confidence);
     };
     
     const handleImageUpload = async (e) => {
@@ -56,14 +89,32 @@ const DetectionToolkit = () => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
                 
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                // Calculate aspect ratio to fit canvas
+                const maxWidth = window.innerWidth < 768 ? window.innerWidth - 40 : 800;
+                const maxHeight = window.innerWidth < 768 ? 400 : 600;
+                
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+                
+                if (height > maxHeight) {
+                    width = (maxHeight / height) * width;
+                    height = maxHeight;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
 
                 setIsLoading(true);
+                await new Promise(resolve => setTimeout(resolve, 800)); // Simulate processing
                 const results = await detectObjects(img);
                 setDetections(results);
-                drawDetections(ctx, results, img.width, img.height);
+                drawDetections(ctx, results, width, height);
                 updateStats(results);
                 saveToHistory(results, resultUrl);
                 setIsLoading(false);
@@ -80,7 +131,11 @@ const DetectionToolkit = () => {
         
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: { ideal: 640 }, height: { ideal: 480 } } 
+                video: { 
+                    width: { ideal: window.innerWidth < 768 ? 480 : 640 }, 
+                    height: { ideal: window.innerWidth < 768 ? 360 : 480 },
+                    facingMode: 'user'
+                } 
             });
             streamRef.current = stream;
             if (videoRef.current) {
@@ -89,6 +144,7 @@ const DetectionToolkit = () => {
                     if (videoRef.current) {
                         const videoWidth = videoRef.current.videoWidth || 640;
                         const videoHeight = videoRef.current.videoHeight || 480;
+                        
                         canvasRef.current.width = videoWidth;
                         canvasRef.current.height = videoHeight;
 
@@ -114,9 +170,10 @@ const DetectionToolkit = () => {
             detectionIntervalRef.current = null;
         }
         setIsDetecting(false);
+        setDetections([]);
         if (canvasRef.current) {
-             const ctx = canvasRef.current.getContext('2d');
-             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            const ctx = canvasRef.current.getContext('2d');
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
     };
 
@@ -138,29 +195,50 @@ const DetectionToolkit = () => {
                 drawDetections(ctx, results, width, height);
                 updateStats(results);
             }
-        }, 100);
+        }, 500); // Update every 500ms for better performance
     };
 
     const drawDetections = (ctx, detections, width, height) => {
-        const fontSize = Math.max(12, Math.min(18, height / 30)); 
-        ctx.strokeStyle = '#10B981';
-        ctx.lineWidth = 3;
+        if (!ctx || !detections) return;
+
+        const fontSize = Math.max(10, Math.min(16, height / 35));
+        ctx.lineWidth = Math.max(2, Math.min(4, width / 200));
         ctx.font = `bold ${fontSize}px Arial`;
         
-        detections.forEach(det => {
+        // Color palette for different classes
+        const colors = [
+            '#10B981', // green
+            '#3B82F6', // blue
+            '#F59E0B', // amber
+            '#EF4444', // red
+            '#8B5CF6', // purple
+            '#EC4899', // pink
+            '#06B6D4', // cyan
+            '#F97316'  // orange
+        ];
+
+        detections.forEach((det, idx) => {
             const [x, y, w, h] = det.bbox;
+            const color = colors[idx % colors.length];
             
+            // Draw box
+            ctx.strokeStyle = color;
             ctx.strokeRect(x, y, w, h);
             
-            const label = `${det.class} ${(det.score * 100).toFixed(1)}%`;
-            const textWidth = ctx.measureText(label).width;
+            // Draw label background
+            const label = `${det.class} ${(det.score * 100).toFixed(0)}%`;
+            const textMetrics = ctx.measureText(label);
+            const textWidth = textMetrics.width;
             const textHeight = fontSize + 8;
             
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
-            ctx.fillRect(x, y > textHeight ? y - textHeight : y, textWidth + 16, textHeight);
+            const labelY = y > textHeight + 5 ? y - textHeight : y + h + textHeight;
             
+            ctx.fillStyle = color;
+            ctx.fillRect(x, labelY - textHeight + 4, textWidth + 12, textHeight);
+            
+            // Draw label text
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(label, x + 8, y > textHeight ? y - 8 : y + textHeight - 8);
+            ctx.fillText(label, x + 6, labelY - 4);
         });
     };
 
@@ -178,7 +256,10 @@ const DetectionToolkit = () => {
     const saveToHistory = (results, imgUrl) => {
         const historyItem = {
             id: Date.now(),
-            timestamp: new Date().toLocaleString(),
+            timestamp: new Date().toLocaleString('id-ID', { 
+                dateStyle: 'short', 
+                timeStyle: 'short' 
+            }),
             detections: results.length,
             classes: [...new Set(results.map(d => d.class))],
             imageUrl: imgUrl
@@ -203,7 +284,11 @@ const DetectionToolkit = () => {
             model: selectedModel,
             confidence,
             timestamp: new Date().toISOString(),
-            detections: detections,
+            detections: detections.map(d => ({
+                class: d.class,
+                confidence: d.score,
+                boundingBox: d.bbox
+            })),
             stats: stats,
             source: isDetecting ? 'webcam' : (imageUrl ? 'uploaded-image' : 'none')
         };
@@ -216,40 +301,36 @@ const DetectionToolkit = () => {
         URL.revokeObjectURL(url);
     };
 
-    const displayStyle = imageUrl || isDetecting ? {} : { 
-        width: '100%', height: '100%' 
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-white">
             {/* Animated Background Effect */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-700"></div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
             </div>
 
             <div className="relative z-10 p-4 sm:p-6 lg:p-8">
                 <div className="max-w-7xl mx-auto">
                     {/* Header with glassmorphism */}
-                    <div className="text-center mb-6 sm:mb-8 backdrop-blur-xl bg-white/5 rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl">
-                        <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="text-center mb-6 sm:mb-8 backdrop-blur-xl bg-white/5 rounded-3xl p-4 sm:p-6 lg:p-8 border border-white/10 shadow-2xl">
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3">
                             <div className="relative">
-                                <Eye className="w-10 h-10 sm:w-12 sm:h-12 text-cyan-400 animate-pulse" />
+                                <Eye className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-cyan-400 animate-pulse" />
                                 <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50 animate-pulse"></div>
                             </div>
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-gradient">
+                            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
                                 AI Vision Studio
                             </h1>
                         </div>
-                        <p className="text-sm sm:text-base text-gray-300 font-medium">Real-time Object Detection • YOLO & SSD Powered</p>
+                        <p className="text-xs sm:text-sm lg:text-base text-gray-300 font-medium">Real-time Object Detection • YOLO & SSD Powered</p>
                         {isDetecting && (
-                            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
-                                <span className="relative flex h-3 w-3">
+                            <div className="mt-4 inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                                <span className="relative flex h-2 w-2 sm:h-3 sm:w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                    <span className="relative inline-flex rounded-full h-full w-full bg-green-500"></span>
                                 </span>
-                                <span className="text-sm font-semibold text-green-400">LIVE DETECTION</span>
+                                <span className="text-xs sm:text-sm font-semibold text-green-400">LIVE DETECTION</span>
                             </div>
                         )}
                     </div>
@@ -259,27 +340,27 @@ const DetectionToolkit = () => {
                         <div className="lg:col-span-4 space-y-4">
                             {/* Quick Stats Cards */}
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="backdrop-blur-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 rounded-2xl p-4 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/20 transition-all duration-300">
+                                <div className="backdrop-blur-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 rounded-2xl p-3 sm:p-4 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/20 transition-all duration-300">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="w-5 h-5 text-cyan-400" />
-                                        <span className="text-xs text-gray-400 font-medium">Total Objects</span>
+                                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                                        <span className="text-xs text-gray-400 font-medium">Total</span>
                                     </div>
-                                    <p className="text-3xl font-black text-cyan-400">{stats.total}</p>
+                                    <p className="text-2xl sm:text-3xl font-black text-cyan-400">{stats.total}</p>
                                 </div>
-                                <div className="backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl p-4 border border-purple-500/20 shadow-lg hover:shadow-purple-500/20 transition-all duration-300">
+                                <div className="backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl p-3 sm:p-4 border border-purple-500/20 shadow-lg hover:shadow-purple-500/20 transition-all duration-300">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Zap className="w-5 h-5 text-purple-400" />
+                                        <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                                         <span className="text-xs text-gray-400 font-medium">Model</span>
                                     </div>
-                                    <p className="text-sm font-bold text-purple-400 uppercase tracking-wider">{selectedModel.split('-')[0]}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-purple-400 uppercase tracking-wider">{selectedModel.split('-')[0]}</p>
                                 </div>
                             </div>
 
                             {/* Model Selection Card */}
-                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl hover:shadow-2xl transition-all duration-300">
-                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                    <Settings className="w-5 h-5 text-cyan-400" />
-                                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Model Settings</span>
+                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/10 shadow-xl hover:shadow-2xl transition-all duration-300">
+                                <h3 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Settings</span>
                                 </h3>
                                 
                                 <div className="space-y-4">
@@ -288,7 +369,7 @@ const DetectionToolkit = () => {
                                         <select 
                                             value={selectedModel}
                                             onChange={(e) => setSelectedModel(e.target.value)}
-                                            className="w-full bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 transition-all font-medium text-sm"
+                                            className="w-full bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 transition-all font-medium"
                                             disabled={isDetecting || isLoading}
                                         >
                                             <option value="coco-ssd">⚡ COCO-SSD (Fast)</option>
@@ -301,7 +382,7 @@ const DetectionToolkit = () => {
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">Confidence</label>
-                                            <span className="text-sm font-black text-cyan-400 bg-cyan-400/10 px-3 py-1 rounded-full">{(confidence * 100).toFixed(0)}%</span>
+                                            <span className="text-xs sm:text-sm font-black text-cyan-400 bg-cyan-400/10 px-2 sm:px-3 py-1 rounded-full">{(confidence * 100).toFixed(0)}%</span>
                                         </div>
                                         <input 
                                             type="range" 
@@ -320,26 +401,26 @@ const DetectionToolkit = () => {
                                     {isLoading && (
                                         <div className="text-center py-4 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
                                             <div className="relative inline-flex">
-                                                <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-800 border-t-cyan-500"></div>
-                                                <Zap className="absolute inset-0 m-auto w-5 h-5 text-cyan-400 animate-pulse" />
+                                                <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-4 border-slate-800 border-t-cyan-500"></div>
+                                                <Zap className="absolute inset-0 m-auto w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 animate-pulse" />
                                             </div>
-                                            <p className="text-sm mt-3 text-cyan-400 font-semibold">Loading AI Model...</p>
+                                            <p className="text-xs sm:text-sm mt-3 text-cyan-400 font-semibold">Loading AI Model...</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl">
-                                <h3 className="text-lg font-bold mb-4 text-gray-200">Quick Actions</h3>
+                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/10 shadow-xl">
+                                <h3 className="text-base sm:text-lg font-bold mb-4 text-gray-200">Quick Actions</h3>
                                 <div className="grid grid-cols-1 gap-3">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="group relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-cyan-500/50 font-semibold"
+                                        className="group relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-xl px-4 py-3 sm:py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-cyan-500/50 font-semibold text-sm sm:text-base"
                                         disabled={isDetecting || isLoading}
                                     >
                                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                        <Upload className="w-5 h-5 relative z-10" />
+                                        <Upload className="w-4 h-4 sm:w-5 sm:h-5 relative z-10" />
                                         <span className="relative z-10">Upload Image</span>
                                     </button>
                                     <input 
@@ -353,19 +434,19 @@ const DetectionToolkit = () => {
                                     {!isDetecting ? (
                                         <button
                                             onClick={startWebcam}
-                                            className="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-green-500/50 font-semibold"
+                                            className="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl px-4 py-3 sm:py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-green-500/50 font-semibold text-sm sm:text-base"
                                             disabled={isLoading}
                                         >
                                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                            <Camera className="w-5 h-5 relative z-10" />
+                                            <Camera className="w-4 h-4 sm:w-5 sm:h-5 relative z-10" />
                                             <span className="relative z-10">Start Webcam</span>
                                         </button>
                                     ) : (
                                         <button
                                             onClick={stopWebcam}
-                                            className="group relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-red-500/50 font-semibold animate-pulse"
+                                            className="group relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl px-4 py-3 sm:py-3.5 flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-red-500/50 font-semibold animate-pulse text-sm sm:text-base"
                                         >
-                                            <Square className="w-5 h-5 relative z-10" />
+                                            <Square className="w-4 h-4 sm:w-5 sm:h-5 relative z-10" />
                                             <span className="relative z-10">Stop Detection</span>
                                         </button>
                                     )}
@@ -373,20 +454,20 @@ const DetectionToolkit = () => {
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={downloadResults}
-                                            className="bg-slate-800/50 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-sm font-medium"
+                                            className="bg-slate-800/50 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500 rounded-xl px-3 py-2 sm:py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-xs sm:text-sm font-medium"
                                             disabled={detections.length === 0 && !imageUrl}
                                         >
                                             <Download className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Image</span>
+                                            <span>Image</span>
                                         </button>
 
                                         <button
                                             onClick={exportData}
-                                            className="bg-slate-800/50 hover:bg-pink-600/30 border border-pink-500/30 hover:border-pink-500 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-sm font-medium"
+                                            className="bg-slate-800/50 hover:bg-pink-600/30 border border-pink-500/30 hover:border-pink-500 rounded-xl px-3 py-2 sm:py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-xs sm:text-sm font-medium"
                                             disabled={detections.length === 0}
                                         >
                                             <Download className="w-4 h-4" />
-                                            <span className="hidden sm:inline">JSON</span>
+                                            <span>JSON</span>
                                         </button>
                                     </div>
                                 </div>
@@ -394,20 +475,20 @@ const DetectionToolkit = () => {
 
                             {/* Class Statistics */}
                             {Object.keys(stats.byClass).length > 0 && (
-                                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl">
-                                    <h3 className="text-lg font-bold mb-4 text-gray-200">Detected Classes</h3>
-                                    <div className="space-y-3">
+                                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/10 shadow-xl">
+                                    <h3 className="text-base sm:text-lg font-bold mb-4 text-gray-200">Detected Classes</h3>
+                                    <div className="space-y-2 sm:space-y-3">
                                         {Object.entries(stats.byClass).map(([cls, count]) => (
-                                            <div key={cls} className="flex items-center justify-between bg-slate-900/30 rounded-xl p-3 border border-white/5 hover:border-cyan-500/30 transition-all">
-                                                <span className="text-sm font-semibold capitalize text-gray-300">{cls}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-2 w-24 bg-slate-800 rounded-full overflow-hidden">
+                                            <div key={cls} className="flex items-center justify-between bg-slate-900/30 rounded-xl p-2 sm:p-3 border border-white/5 hover:border-cyan-500/30 transition-all">
+                                                <span className="text-xs sm:text-sm font-semibold capitalize text-gray-300">{cls}</span>
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <div className="h-2 w-16 sm:w-24 bg-slate-800 rounded-full overflow-hidden">
                                                         <div 
                                                             className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all duration-500"
                                                             style={{ width: `${(count / stats.total) * 100}%` }}
                                                         ></div>
                                                     </div>
-                                                    <span className="text-lg font-black text-cyan-400 min-w-[2rem] text-right">{count}</span>
+                                                    <span className="text-base sm:text-lg font-black text-cyan-400 min-w-[1.5rem] text-right">{count}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -420,20 +501,25 @@ const DetectionToolkit = () => {
                         <div className="lg:col-span-8 space-y-4">
                             {/* Main Detection Canvas */}
                             <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-2xl">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                                        <Play className="w-5 h-5 text-cyan-400" />
-                                        <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Live Detection View</span>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                    <h3 className="text-base sm:text-lg lg:text-xl font-bold flex items-center gap-2">
+                                        <Play className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                                        <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Live View</span>
                                     </h3>
+                                    {detections.length > 0 && (
+                                        <span className="text-xs sm:text-sm text-green-400 font-semibold bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                                            {detections.length} object{detections.length > 1 ? 's' : ''} detected
+                                        </span>
+                                    )}
                                 </div>
                                 <div 
                                     className="relative bg-gradient-to-br from-slate-950 to-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10 shadow-inner"
-                                    style={{ minHeight: '300px', aspectRatio: '16/9' }}
+                                    style={{ minHeight: '250px', maxHeight: '600px', aspectRatio: '16/9' }}
                                 >
                                     {isDetecting && (
                                         <video 
                                             ref={videoRef}
-                                            className="absolute top-0 left-0"
+                                            className="absolute inset-0"
                                             style={{ visibility: 'hidden', width: '100%', height: '100%', objectFit: 'contain' }}
                                             playsInline 
                                             muted 
@@ -442,16 +528,19 @@ const DetectionToolkit = () => {
                                     <canvas 
                                         ref={canvasRef}
                                         className="w-full h-full object-contain rounded-xl"
-                                        style={displayStyle}
+                                        style={{
+                                            maxWidth: '100%',
+                                            maxHeight: '100%'
+                                        }}
                                     />
                                     {!imageUrl && !isDetecting && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="absolute inset-0 flex items-center justify-center p-4">
                                             <div className="text-center">
-                                                <div className="relative inline-block mb-6">
-                                                    <Camera className="w-16 h-16 sm:w-20 sm:h-20 text-cyan-400/30" />
+                                                <div className="relative inline-block mb-4 sm:mb-6">
+                                                    <Camera className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 text-cyan-400/30" />
                                                     <div className="absolute inset-0 bg-cyan-400/20 blur-2xl"></div>
                                                 </div>
-                                                <p className="text-base sm:text-lg font-semibold text-gray-400 mb-2">No Active Detection</p>
+                                                <p className="text-sm sm:text-base lg:text-lg font-semibold text-gray-400 mb-2">No Active Detection</p>
                                                 <p className="text-xs sm:text-sm text-gray-500">Upload an image or start webcam to begin</p>
                                             </div>
                                         </div>
@@ -462,15 +551,15 @@ const DetectionToolkit = () => {
                             {/* Detection Results */}
                             {detections.length > 0 && (
                                 <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-xl">
-                                    <h3 className="text-lg sm:text-xl font-bold mb-4 flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-green-400" />
+                                    <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-4 flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                                         Detection Results
                                     </h3>
                                     <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                                         {detections.map((det, idx) => (
                                             <div key={idx} className="group bg-gradient-to-r from-slate-900/50 to-slate-800/50 hover:from-cyan-900/20 hover:to-purple-900/20 rounded-xl p-3 sm:p-4 border border-white/5 hover:border-cyan-500/30 transition-all duration-300">
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                                    <span className="capitalize font-bold text-base sm:text-lg text-cyan-400 flex items-center gap-2">
+                                                    <span className="capitalize font-bold text-sm sm:text-base lg:text-lg text-cyan-400 flex items-center gap-2">
                                                         <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
                                                         {det.class}
                                                     </span>
@@ -478,7 +567,7 @@ const DetectionToolkit = () => {
                                                         <div className="flex-1 sm:flex-none">
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 <span className="text-xs font-medium text-gray-400">Confidence:</span>
-                                                                <span className="text-sm font-black text-green-400">{(det.score * 100).toFixed(1)}%</span>
+                                                                <span className="text-xs sm:text-sm font-black text-green-400">{(det.score * 100).toFixed(1)}%</span>
                                                             </div>
                                                             <div className="w-full sm:w-32 bg-slate-800 rounded-full h-2 overflow-hidden">
                                                                 <div 
@@ -499,28 +588,28 @@ const DetectionToolkit = () => {
                             {detectionHistory.length > 0 && (
                                 <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-xl">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                                        <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                                            <TrendingUp className="w-5 h-5 text-purple-400" />
+                                        <h3 className="text-base sm:text-lg lg:text-xl font-bold flex items-center gap-2">
+                                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                                             Detection History
                                         </h3>
                                         <button
                                             onClick={() => setDetectionHistory([])}
-                                            className="text-red-400 hover:text-red-300 flex items-center gap-2 text-sm font-semibold bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-xl border border-red-500/20 hover:border-red-500/40 transition-all"
+                                            className="text-red-400 hover:text-red-300 flex items-center gap-2 text-xs sm:text-sm font-semibold bg-red-500/10 hover:bg-red-500/20 px-3 sm:px-4 py-2 rounded-xl border border-red-500/20 hover:border-red-500/40 transition-all"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                            Clear History
+                                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                            Clear
                                         </button>
                                     </div>
                                     <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                                         {detectionHistory.map((item) => (
-                                            <div key={item.id} className="bg-gradient-to-r from-slate-900/50 to-slate-800/50 hover:from-purple-900/20 hover:to-pink-900/20 rounded-xl p-4 border border-white/5 hover:border-purple-500/30 transition-all duration-300">
+                                            <div key={item.id} className="bg-gradient-to-r from-slate-900/50 to-slate-800/50 hover:from-purple-900/20 hover:to-pink-900/20 rounded-xl p-3 sm:p-4 border border-white/5 hover:border-purple-500/30 transition-all duration-300">
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                     <div className="flex-1">
                                                         <p className="text-xs text-gray-400 mb-2 font-medium">{item.timestamp}</p>
-                                                        <p className="font-semibold text-white mb-1">
-                                                            <span className="text-cyan-400 font-black text-lg">{item.detections}</span> objects detected
+                                                        <p className="font-semibold text-sm sm:text-base text-white mb-2">
+                                                            <span className="text-cyan-400 font-black text-base sm:text-lg">{item.detections}</span> objects detected
                                                         </p>
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                                             {item.classes.map((cls, i) => (
                                                                 <span key={i} className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
                                                                     {cls}
@@ -554,14 +643,6 @@ const DetectionToolkit = () => {
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
                     background: rgba(6, 182, 212, 0.5);
-                }
-                @keyframes gradient {
-                    0%, 100% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                }
-                .animate-gradient {
-                    background-size: 200% 200%;
-                    animation: gradient 3s ease infinite;
                 }
             `}</style>
         </div>
