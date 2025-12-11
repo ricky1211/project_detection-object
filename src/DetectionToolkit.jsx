@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, Download, Trash2, Settings, Square } from 'lucide-react';
+import { Camera, Upload, Download, Trash2, Settings, Square, Play, Zap, TrendingUp, Eye } from 'lucide-react';
 
 const DetectionToolkit = () => {
     const [selectedModel, setSelectedModel] = useState('coco-ssd');
@@ -143,9 +143,9 @@ const DetectionToolkit = () => {
 
     const drawDetections = (ctx, detections, width, height) => {
         const fontSize = Math.max(12, Math.min(18, height / 30)); 
-        ctx.strokeStyle = '#00FF00';
+        ctx.strokeStyle = '#10B981';
         ctx.lineWidth = 3;
-        ctx.font = `${fontSize}px Arial`;
+        ctx.font = `bold ${fontSize}px Arial`;
         
         detections.forEach(det => {
             const [x, y, w, h] = det.bbox;
@@ -154,13 +154,13 @@ const DetectionToolkit = () => {
             
             const label = `${det.class} ${(det.score * 100).toFixed(1)}%`;
             const textWidth = ctx.measureText(label).width;
-            const textHeight = fontSize + 4;
+            const textHeight = fontSize + 8;
             
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-            ctx.fillRect(x, y > textHeight ? y - textHeight : y, textWidth + 10, textHeight);
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+            ctx.fillRect(x, y > textHeight ? y - textHeight : y, textWidth + 16, textHeight);
             
-            ctx.fillStyle = '#000000';
-            ctx.fillText(label, x + 5, y > textHeight ? y - 5 : y + textHeight - 5);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(label, x + 8, y > textHeight ? y - 8 : y + textHeight - 8);
         });
     };
 
@@ -221,236 +221,349 @@ const DetectionToolkit = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white p-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="text-5xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400">
-                        Object Detection Toolkit 🤖
-                    </h1>
-                    <p className="text-gray-400">Simulasi Deteksi Objek Real-time (YOLO & SSD)</p>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-white">
+            {/* Animated Background Effect */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-700"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"></div>
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Panel - Controls */}
-                    <div className="lg:col-span-1 space-y-4">
-                        {/* Model Selection */}
-                        <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                                <Settings className="w-5 h-5 text-blue-400" />
-                                Model Configuration
-                            </h3>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Select Model</label>
-                                    <select 
-                                        value={selectedModel}
-                                        onChange={(e) => setSelectedModel(e.target.value)}
-                                        className="w-full bg-gray-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                                        disabled={isDetecting || isLoading}
-                                    >
-                                        <option value="coco-ssd">COCO-SSD (Fast)</option>
-                                        <option value="yolov5">YOLOv5 (Accurate - Mock)</option>
-                                        <option value="yolov8">YOLOv8 (Latest - Mock)</option>
-                                        <option value="ssd-mobilenet">SSD MobileNet (Mock)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">
-                                        Confidence Threshold: <span className="font-bold text-green-400">{confidence.toFixed(2)}</span>
-                                    </label>
-                                    <input 
-                                        type="range" 
-                                        min="0.1" 
-                                        max="1" 
-                                        step="0.05"
-                                        value={confidence}
-                                        onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-
-                                {isLoading && (
-                                    <div className="text-center py-4">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                                        <p className="text-sm mt-2 text-blue-400">Loading model...</p>
-                                    </div>
-                                )}
+            <div className="relative z-10 p-4 sm:p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto">
+                    {/* Header with glassmorphism */}
+                    <div className="text-center mb-6 sm:mb-8 backdrop-blur-xl bg-white/5 rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                            <div className="relative">
+                                <Eye className="w-10 h-10 sm:w-12 sm:h-12 text-cyan-400 animate-pulse" />
+                                <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50 animate-pulse"></div>
                             </div>
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-gradient">
+                                AI Vision Studio
+                            </h1>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                            <h3 className="text-xl font-semibold mb-4">Actions</h3>
-                            <div className="space-y-3">
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition disabled:opacity-50"
-                                    disabled={isDetecting || isLoading}
-                                >
-                                    <Upload className="w-5 h-5" />
-                                    Upload Image
-                                </button>
-                                <input 
-                                    ref={fileInputRef}
-                                    type="file" 
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-
-                                {!isDetecting ? (
-                                    <button
-                                        onClick={startWebcam}
-                                        className="w-full bg-green-600 hover:bg-green-700 rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition disabled:opacity-50"
-                                        disabled={isLoading}
-                                    >
-                                        <Camera className="w-5 h-5" />
-                                        Start Webcam
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={stopWebcam}
-                                        className="w-full bg-red-600 hover:bg-red-700 rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition"
-                                    >
-                                        <Square className="w-5 h-5" />
-                                        Stop Webcam
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={downloadResults}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition disabled:opacity-50"
-                                    disabled={detections.length === 0 && !imageUrl}
-                                >
-                                    <Download className="w-5 h-5" />
-                                    Download Annotated Image
-                                </button>
-
-                                <button
-                                    onClick={exportData}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition disabled:opacity-50"
-                                    disabled={detections.length === 0}
-                                >
-                                    <Download className="w-5 h-5" />
-                                    Export Detection Data (JSON)
-                                </button>
+                        <p className="text-sm sm:text-base text-gray-300 font-medium">Real-time Object Detection • YOLO & SSD Powered</p>
+                        {isDetecting && (
+                            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded-full">
+                                <span className="relative flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                </span>
+                                <span className="text-sm font-semibold text-green-400">LIVE DETECTION</span>
                             </div>
-                        </div>
-
-                        {/* Statistics */}
-                        <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                            <h3 className="text-xl font-semibold mb-4">Statistics</h3>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center pb-2 border-b border-gray-700">
-                                    <span className="text-gray-400">Total Objects Detected:</span>
-                                    <span className="text-3xl font-extrabold text-blue-400">{stats.total}</span>
-                                </div>
-                                {Object.entries(stats.byClass).map(([cls, count]) => (
-                                    <div key={cls} className="flex justify-between items-center">
-                                        <span className="text-gray-400 capitalize">{cls}:</span>
-                                        <span className="font-semibold text-green-400">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        )}
                     </div>
 
-                    {/* Center Panel - Detection View */}
-                    <div className="lg:col-span-2 space-y-4">
-                        <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                            <h3 className="text-xl font-semibold mb-4">Detection View</h3>
-                            <div 
-                                className="relative bg-black rounded-lg overflow-hidden flex items-center justify-center" 
-                                style={{ minHeight: '400px', aspectRatio: '4/3' }}
-                            >
-                                {isDetecting && (
-                                    <video 
-                                        ref={videoRef}
-                                        className="absolute top-0 left-0"
-                                        style={{ visibility: 'hidden', width: '100%', height: '100%', objectFit: 'contain' }}
-                                        playsInline 
-                                        muted 
-                                    />
-                                )}
-                                <canvas 
-                                    ref={canvasRef}
-                                    className="w-full h-full object-contain"
-                                    style={displayStyle}
-                                />
-                                {!imageUrl && !isDetecting && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="text-center text-gray-500">
-                                            <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                            <p className="text-lg">Upload an image or start webcam to begin detection</p>
-                                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+                        {/* Left Panel - Controls */}
+                        <div className="lg:col-span-4 space-y-4">
+                            {/* Quick Stats Cards */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="backdrop-blur-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 rounded-2xl p-4 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/20 transition-all duration-300">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <TrendingUp className="w-5 h-5 text-cyan-400" />
+                                        <span className="text-xs text-gray-400 font-medium">Total Objects</span>
                                     </div>
-                                )}
+                                    <p className="text-3xl font-black text-cyan-400">{stats.total}</p>
+                                </div>
+                                <div className="backdrop-blur-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl p-4 border border-purple-500/20 shadow-lg hover:shadow-purple-500/20 transition-all duration-300">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Zap className="w-5 h-5 text-purple-400" />
+                                        <span className="text-xs text-gray-400 font-medium">Model</span>
+                                    </div>
+                                    <p className="text-sm font-bold text-purple-400 uppercase tracking-wider">{selectedModel.split('-')[0]}</p>
+                                </div>
                             </div>
+
+                            {/* Model Selection Card */}
+                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl hover:shadow-2xl transition-all duration-300">
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Settings className="w-5 h-5 text-cyan-400" />
+                                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Model Settings</span>
+                                </h3>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold mb-2 text-gray-300 uppercase tracking-wider">AI Model</label>
+                                        <select 
+                                            value={selectedModel}
+                                            onChange={(e) => setSelectedModel(e.target.value)}
+                                            className="w-full bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 transition-all font-medium text-sm"
+                                            disabled={isDetecting || isLoading}
+                                        >
+                                            <option value="coco-ssd">⚡ COCO-SSD (Fast)</option>
+                                            <option value="yolov5">🎯 YOLOv5 (Accurate)</option>
+                                            <option value="yolov8">🚀 YOLOv8 (Latest)</option>
+                                            <option value="ssd-mobilenet">📱 SSD MobileNet</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">Confidence</label>
+                                            <span className="text-sm font-black text-cyan-400 bg-cyan-400/10 px-3 py-1 rounded-full">{(confidence * 100).toFixed(0)}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0.1" 
+                                            max="1" 
+                                            step="0.05"
+                                            value={confidence}
+                                            onChange={(e) => setConfidence(parseFloat(e.target.value))}
+                                            className="w-full h-2 bg-slate-800 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                            style={{
+                                                background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${confidence * 100}%, #1e293b ${confidence * 100}%, #1e293b 100%)`
+                                            }}
+                                        />
+                                    </div>
+
+                                    {isLoading && (
+                                        <div className="text-center py-4 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                                            <div className="relative inline-flex">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-800 border-t-cyan-500"></div>
+                                                <Zap className="absolute inset-0 m-auto w-5 h-5 text-cyan-400 animate-pulse" />
+                                            </div>
+                                            <p className="text-sm mt-3 text-cyan-400 font-semibold">Loading AI Model...</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl">
+                                <h3 className="text-lg font-bold mb-4 text-gray-200">Quick Actions</h3>
+                                <div className="grid grid-cols-1 gap-3">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="group relative overflow-hidden bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-cyan-500/50 font-semibold"
+                                        disabled={isDetecting || isLoading}
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                        <Upload className="w-5 h-5 relative z-10" />
+                                        <span className="relative z-10">Upload Image</span>
+                                    </button>
+                                    <input 
+                                        ref={fileInputRef}
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="hidden"
+                                    />
+
+                                    {!isDetecting ? (
+                                        <button
+                                            onClick={startWebcam}
+                                            className="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-green-500/50 font-semibold"
+                                            disabled={isLoading}
+                                        >
+                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                            <Camera className="w-5 h-5 relative z-10" />
+                                            <span className="relative z-10">Start Webcam</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={stopWebcam}
+                                            className="group relative overflow-hidden bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-xl px-4 py-3.5 flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-red-500/50 font-semibold animate-pulse"
+                                        >
+                                            <Square className="w-5 h-5 relative z-10" />
+                                            <span className="relative z-10">Stop Detection</span>
+                                        </button>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={downloadResults}
+                                            className="bg-slate-800/50 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-sm font-medium"
+                                            disabled={detections.length === 0 && !imageUrl}
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Image</span>
+                                        </button>
+
+                                        <button
+                                            onClick={exportData}
+                                            className="bg-slate-800/50 hover:bg-pink-600/30 border border-pink-500/30 hover:border-pink-500 rounded-xl px-3 py-2.5 flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 text-sm font-medium"
+                                            disabled={detections.length === 0}
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            <span className="hidden sm:inline">JSON</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Class Statistics */}
+                            {Object.keys(stats.byClass).length > 0 && (
+                                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-5 border border-white/10 shadow-xl">
+                                    <h3 className="text-lg font-bold mb-4 text-gray-200">Detected Classes</h3>
+                                    <div className="space-y-3">
+                                        {Object.entries(stats.byClass).map(([cls, count]) => (
+                                            <div key={cls} className="flex items-center justify-between bg-slate-900/30 rounded-xl p-3 border border-white/5 hover:border-cyan-500/30 transition-all">
+                                                <span className="text-sm font-semibold capitalize text-gray-300">{cls}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-2 w-24 bg-slate-800 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all duration-500"
+                                                            style={{ width: `${(count / stats.total) * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-lg font-black text-cyan-400 min-w-[2rem] text-right">{count}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Detection Results */}
-                        {detections.length > 0 && (
-                            <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                                <h3 className="text-xl font-semibold mb-4">Detection Results</h3>
-                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                    {detections.map((det, idx) => (
-                                        <div key={idx} className="bg-gray-700 rounded px-4 py-2 flex justify-between items-center border border-gray-600">
-                                            <span className="capitalize font-medium text-lg text-blue-300">{det.class}</span>
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-sm text-gray-400">
-                                                    Confidence: <span className="font-bold text-green-400">{(det.score * 100).toFixed(1)}%</span>
-                                                </span>
-                                                <div className="w-24 bg-gray-600 rounded-full h-2">
-                                                    <div 
-                                                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                                        style={{ width: `${det.score * 100}%` }}
-                                                    />
+                        {/* Center/Right Panel - Detection View */}
+                        <div className="lg:col-span-8 space-y-4">
+                            {/* Main Detection Canvas */}
+                            <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-2xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                                        <Play className="w-5 h-5 text-cyan-400" />
+                                        <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Live Detection View</span>
+                                    </h3>
+                                </div>
+                                <div 
+                                    className="relative bg-gradient-to-br from-slate-950 to-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10 shadow-inner"
+                                    style={{ minHeight: '300px', aspectRatio: '16/9' }}
+                                >
+                                    {isDetecting && (
+                                        <video 
+                                            ref={videoRef}
+                                            className="absolute top-0 left-0"
+                                            style={{ visibility: 'hidden', width: '100%', height: '100%', objectFit: 'contain' }}
+                                            playsInline 
+                                            muted 
+                                        />
+                                    )}
+                                    <canvas 
+                                        ref={canvasRef}
+                                        className="w-full h-full object-contain rounded-xl"
+                                        style={displayStyle}
+                                    />
+                                    {!imageUrl && !isDetecting && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="text-center">
+                                                <div className="relative inline-block mb-6">
+                                                    <Camera className="w-16 h-16 sm:w-20 sm:h-20 text-cyan-400/30" />
+                                                    <div className="absolute inset-0 bg-cyan-400/20 blur-2xl"></div>
                                                 </div>
+                                                <p className="text-base sm:text-lg font-semibold text-gray-400 mb-2">No Active Detection</p>
+                                                <p className="text-xs sm:text-sm text-gray-500">Upload an image or start webcam to begin</p>
                                             </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
-                        )}
 
-                        {/* Detection History */}
-                        {detectionHistory.length > 0 && (
-                            <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
-                                <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                                    <h3 className="text-xl font-semibold">Detection History (Last 10)</h3>
-                                    <button
-                                        onClick={() => setDetectionHistory([])}
-                                        className="text-red-400 hover:text-red-300 flex items-center gap-1 transition"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                        Clear History
-                                    </button>
-                                </div>
-                                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                                    {detectionHistory.map((item) => (
-                                        <div key={item.id} className="bg-gray-700 rounded px-4 py-3 border border-gray-600 hover:bg-gray-600 transition">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="text-sm text-gray-400">{item.timestamp}</p>
-                                                    <p className="font-medium mt-1 text-white">
-                                                        <span className="text-blue-300 font-bold">{item.detections}</span> objects detected
-                                                    </p>
-                                                    <p className="text-sm text-green-400 mt-1">
-                                                        Classes: {item.classes.join(', ')}
-                                                    </p>
+                            {/* Detection Results */}
+                            {detections.length > 0 && (
+                                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-xl">
+                                    <h3 className="text-lg sm:text-xl font-bold mb-4 flex items-center gap-2">
+                                        <TrendingUp className="w-5 h-5 text-green-400" />
+                                        Detection Results
+                                    </h3>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                        {detections.map((det, idx) => (
+                                            <div key={idx} className="group bg-gradient-to-r from-slate-900/50 to-slate-800/50 hover:from-cyan-900/20 hover:to-purple-900/20 rounded-xl p-3 sm:p-4 border border-white/5 hover:border-cyan-500/30 transition-all duration-300">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                    <span className="capitalize font-bold text-base sm:text-lg text-cyan-400 flex items-center gap-2">
+                                                        <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+                                                        {det.class}
+                                                    </span>
+                                                    <div className="flex items-center gap-3 sm:gap-4">
+                                                        <div className="flex-1 sm:flex-none">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-xs font-medium text-gray-400">Confidence:</span>
+                                                                <span className="text-sm font-black text-green-400">{(det.score * 100).toFixed(1)}%</span>
+                                                            </div>
+                                                            <div className="w-full sm:w-32 bg-slate-800 rounded-full h-2 overflow-hidden">
+                                                                <div 
+                                                                    className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500 shadow-lg shadow-green-500/50"
+                                                                    style={{ width: `${det.score * 100}%` }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {/* Detection History */}
+                            {detectionHistory.length > 0 && (
+                                <div className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 shadow-xl">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                        <h3 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                                            <TrendingUp className="w-5 h-5 text-purple-400" />
+                                            Detection History
+                                        </h3>
+                                        <button
+                                            onClick={() => setDetectionHistory([])}
+                                            className="text-red-400 hover:text-red-300 flex items-center gap-2 text-sm font-semibold bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-xl border border-red-500/20 hover:border-red-500/40 transition-all"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Clear History
+                                        </button>
+                                    </div>
+                                    <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+                                        {detectionHistory.map((item) => (
+                                            <div key={item.id} className="bg-gradient-to-r from-slate-900/50 to-slate-800/50 hover:from-purple-900/20 hover:to-pink-900/20 rounded-xl p-4 border border-white/5 hover:border-purple-500/30 transition-all duration-300">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                    <div className="flex-1">
+                                                        <p className="text-xs text-gray-400 mb-2 font-medium">{item.timestamp}</p>
+                                                        <p className="font-semibold text-white mb-1">
+                                                            <span className="text-cyan-400 font-black text-lg">{item.detections}</span> objects detected
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {item.classes.map((cls, i) => (
+                                                                <span key={i} className="text-xs font-semibold text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
+                                                                    {cls}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* Custom Scrollbar Styles */}
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(15, 23, 42, 0.5);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(6, 182, 212, 0.3);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(6, 182, 212, 0.5);
+                }
+                @keyframes gradient {
+                    0%, 100% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                }
+                .animate-gradient {
+                    background-size: 200% 200%;
+                    animation: gradient 3s ease infinite;
+                }
+            `}</style>
         </div>
     );
 };
