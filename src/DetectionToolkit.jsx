@@ -1,13 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import DetectionToolkit from './DetectionToolkit.jsx'; // ✅ Dengan .jsx
-import './index.css';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Upload, Download, Trash2, Settings, Square } from 'lucide-react';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <DetectionToolkit />
-  </React.StrictMode>,
-);
 const DetectionToolkit = () => {
     const [selectedModel, setSelectedModel] = useState('coco-ssd');
     const [isLoading, setIsLoading] = useState(false);
@@ -446,7 +439,7 @@ const DetectionToolkit = () => {
                                                         <span className="text-blue-300 font-bold">{item.detections}</span> objects detected
                                                     </p>
                                                     <p className="text-sm text-green-400 mt-1">
-                                                        **Classes:** {item.classes.join(', ')}
+                                                        Classes: {item.classes.join(', ')}
                                                     </p>
                                                 </div>
                                             </div>
