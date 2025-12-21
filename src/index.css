@@ -1,8 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Global Styles */
+/* Global Styles - Minimal untuk compatibility */
 * {
   margin: 0;
   padding: 0;
