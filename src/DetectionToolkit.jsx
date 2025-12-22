@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Upload, RotateCcw, ZoomIn, AlertCircle, CheckCircle, Download } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, Upload, RotateCcw, ZoomIn, AlertCircle, CheckCircle, Download, Github, Linkedin, Mail } from 'lucide-react';
 
 const DetectionToolkit = () => {
   const [model, setModel] = useState(null);
@@ -11,623 +11,347 @@ const DetectionToolkit = () => {
   const [imageSrc, setImageSrc] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageRef = useRef(null);
 
-  // Styles
+  // --- STYLES ---
   const styles = {
     container: {
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '1rem',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    },
-    wrapper: {
-      maxWidth: '1280px',
-      margin: '0 auto'
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: '2rem',
+      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+      padding: '2rem 1rem',
+      fontFamily: 'Inter, system-ui, sans-serif',
       color: 'white'
     },
-    title: {
-      fontSize: '2.5rem',
-      fontWeight: 'bold',
-      marginBottom: '0.5rem'
-    },
-    subtitle: {
-      fontSize: '1rem',
-      opacity: 0.9
-    },
-    buttonGroup: {
-      display: 'flex',
-      gap: '1rem',
-      justifyContent: 'center',
-      marginBottom: '2rem',
-      flexWrap: 'wrap'
+    wrapper: { maxWidth: '1200px', margin: '0 auto' },
+    header: { textAlign: 'center', marginBottom: '3rem' },
+    card: {
+      background: 'rgba(255, 255, 255, 0.05)',
+      backdropFilter: 'blur(10px)',
+      borderRadius: '24px',
+      padding: '1.5rem',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
     },
     button: {
       display: 'flex',
       alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.75rem 1.5rem',
+      gap: '0.6rem',
+      padding: '0.8rem 1.5rem',
       borderRadius: '12px',
       fontWeight: '600',
       border: 'none',
       cursor: 'pointer',
-      transition: 'all 0.3s',
-      fontSize: '1rem'
-    },
-    buttonActive: {
-      background: 'white',
-      color: '#667eea',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-      transform: 'scale(1.05)'
-    },
-    buttonInactive: {
-      background: 'rgba(255,255,255,0.2)',
-      color: 'white'
-    },
-    card: {
-      background: 'rgba(255,255,255,0.15)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '20px',
-      padding: '1.5rem',
-      boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
-    },
-    detectionArea: {
-      background: 'rgba(0,0,0,0.3)',
-      borderRadius: '12px',
-      minHeight: '300px',
-      marginBottom: '1rem',
-      position: 'relative',
-      overflow: 'hidden'
-    },
-    actionButtons: {
-      display: 'flex',
-      gap: '0.75rem',
-      flexWrap: 'wrap'
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     },
     primaryButton: {
-      flex: 1,
-      minWidth: '120px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: '#4f46e5',
       color: 'white',
-      padding: '0.75rem 1.5rem',
-      borderRadius: '12px',
-      border: 'none',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.3s',
-      fontSize: '1rem'
+      width: '100%'
     },
-    secondaryButton: {
-      background: 'rgba(255,255,255,0.2)',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      borderRadius: '12px',
-      border: 'none',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.3s'
-    },
-    resultsCard: {
-      background: 'rgba(255,255,255,0.15)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '20px',
-      padding: '1.5rem',
-      boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-      color: 'white'
-    },
-    successBox: {
-      background: 'rgba(34,197,94,0.2)',
-      border: '2px solid #22c55e',
-      borderRadius: '12px',
-      padding: '1rem',
-      marginBottom: '1rem'
-    },
-    errorBox: {
-      background: 'rgba(239,68,68,0.2)',
-      border: '2px solid #ef4444',
-      borderRadius: '12px',
-      padding: '1rem',
-      marginBottom: '1rem',
-      color: '#fecaca'
-    },
-    infoBox: {
-      background: 'rgba(255,255,255,0.1)',
-      borderRadius: '12px',
-      padding: '1rem',
-      marginBottom: '1rem'
-    },
-    statRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      padding: '0.5rem 0',
-      fontSize: '0.95rem'
-    },
-    loadingContainer: {
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem'
-    },
-    loadingBox: {
-      background: 'rgba(255,255,255,0.15)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '20px',
-      padding: '3rem',
-      textAlign: 'center',
-      maxWidth: '400px'
-    },
-    spinner: {
-      width: '80px',
-      height: '80px',
-      border: '4px solid rgba(255,255,255,0.3)',
-      borderTop: '4px solid white',
-      borderRadius: '50%',
-      margin: '0 auto 1.5rem',
-      animation: 'spin 1s linear infinite'
-    },
-    grid: {
+    profileSection: {
+      marginTop: '5rem',
       display: 'grid',
-      gridTemplateColumns: '1fr',
-      gap: '1.5rem',
-      marginBottom: '2rem'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      gap: '2rem',
+      paddingBottom: '4rem'
     },
-    gridLg: {
-      '@media (min-width: 1024px)': {
-        gridTemplateColumns: '2fr 1fr'
-      }
+    profileCard: {
+      background: 'rgba(255, 255, 255, 0.03)',
+      borderRadius: '20px',
+      padding: '2rem',
+      textAlign: 'center',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
+      transition: 'transform 0.3s ease'
     }
   };
 
-  // Load COCO-SSD model
+  // Load COCO-SSD Model
   useEffect(() => {
     const loadModel = async () => {
       try {
         setLoading(true);
-        setError(null);
-        
-        if (!window.cocoSsd) {
-          await new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-              if (window.cocoSsd) {
-                clearInterval(checkInterval);
-                resolve();
-              }
-            }, 100);
-          });
-        }
-        
-        const cocoSsd = await window.cocoSsd.load();
-        setModel(cocoSsd);
-        setLoading(false);
+        // Memastikan script tfjs sudah dimuat di index.html atau via npm
+        const loadedModel = await window.cocoSsd.load();
+        setModel(loadedModel);
       } catch (err) {
-        console.error('Error loading model:', err);
-        setError('Gagal memuat model AI. Silakan refresh halaman.');
+        setError('Gagal memuat model AI. Pastikan koneksi internet stabil.');
+      } finally {
         setLoading(false);
       }
     };
-    
     loadModel();
   }, []);
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      setMode('camera');
-      setPredictions([]);
-      setAnalysis(null);
-      setError(null);
-    } catch (err) {
-      console.error('Camera error:', err);
-      setError('Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.');
-    }
-  };
-
-  const stopCamera = () => {
+  // --- OPTIMASI KAMERA ---
+  const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setMode('upload');
+    setIsCameraLoading(false);
+  }, [stream]);
+
+  const startCamera = async () => {
+    setIsCameraLoading(true);
+    setError(null);
+    setMode('camera');
+
+    const constraints = {
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 640 }, // Resolusi ideal untuk kecepatan proses
+        height: { ideal: 480 }
+      },
+      audio: false
+    };
+
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        // Tunggu hingga metadata dimuat sebelum menandakan kamera siap
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+          setStream(mediaStream);
+          setIsCameraLoading(false);
+        };
+      }
+    } catch (err) {
+      setError('Akses kamera ditolak atau tidak ditemukan.');
+      setIsCameraLoading(false);
+      setMode('upload');
+    }
   };
 
-  const detectFromCamera = async () => {
-    if (!model || !videoRef.current) return;
-    
+  // Cleanup pada unmount
+  useEffect(() => {
+    return () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    };
+  }, [stream]);
+
+  // --- LOGIKA DETEKSI ---
+  const detect = async (source) => {
+    if (!model || !source) return;
     setDetecting(true);
-    setError(null);
     try {
-      const predictions = await model.detect(videoRef.current);
+      const predictions = await model.detect(source);
       setPredictions(predictions);
-      drawPredictions(predictions, videoRef.current);
+      drawPredictions(predictions, source);
       analyzeResults(predictions);
     } catch (err) {
-      console.error('Detection error:', err);
-      setError('Gagal mendeteksi objek. Silakan coba lagi.');
+      setError('Proses deteksi terganggu.');
+    } finally {
+      setDetecting(false);
     }
-    setDetecting(false);
+  };
+
+  const drawPredictions = (preds, source) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const width = source.videoWidth || source.width;
+    const height = source.videoHeight || source.height;
+    
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    
+    preds.forEach(p => {
+      const [x, y, w, h] = p.bbox;
+      ctx.strokeStyle = '#4f46e5';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = '#4f46e5';
+      ctx.fillRect(x, y - 25, ctx.measureText(p.class).width + 20, 25);
+      ctx.fillStyle = 'white';
+      ctx.fillText(`${p.class} ${Math.round(p.score * 100)}%`, x + 5, y - 7);
+    });
+  };
+
+  const analyzeResults = (preds) => {
+    const counts = preds.reduce((acc, curr) => {
+      acc[curr.class] = (acc[curr.class] || 0) + 1;
+      return acc;
+    }, {});
+    setAnalysis({
+      total: preds.length,
+      counts,
+      message: preds.length > 0 ? 'Objek Terdeteksi!' : 'Tidak ada objek'
+    });
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError('File harus berupa gambar!');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImageSrc(event.target.result);
-        setPredictions([]);
-        setAnalysis(null);
-        setError(null);
-      };
-      reader.onerror = () => {
-        setError('Gagal membaca file. Silakan coba lagi.');
-      };
-      reader.readAsDataURL(file);
+      const url = URL.createObjectURL(file);
+      setImageSrc(url);
+      setPredictions([]);
+      setAnalysis(null);
     }
   };
 
-  const detectFromImage = async () => {
-    if (!model || !imageRef.current) return;
-    
-    setDetecting(true);
-    setError(null);
-    try {
-      const predictions = await model.detect(imageRef.current);
-      setPredictions(predictions);
-      drawPredictions(predictions, imageRef.current);
-      analyzeResults(predictions);
-    } catch (err) {
-      console.error('Detection error:', err);
-      setError('Gagal mendeteksi objek. Silakan coba lagi.');
-    }
-    setDetecting(false);
-  };
-
-  const drawPredictions = (predictions, sourceElement) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    canvas.width = sourceElement.videoWidth || sourceElement.width;
-    canvas.height = sourceElement.videoHeight || sourceElement.height;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(sourceElement, 0, 0, canvas.width, canvas.height);
-
-    const colors = [
-      '#00ff00', '#ff00ff', '#00ffff', '#ffff00', 
-      '#ff8800', '#8800ff', '#ff0088', '#00ff88'
-    ];
-
-    predictions.forEach((prediction, idx) => {
-      const [x, y, width, height] = prediction.bbox;
-      const color = colors[idx % colors.length];
-      
-      ctx.fillStyle = color + '20';
-      ctx.fillRect(x, y, width, height);
-      
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 4;
-      ctx.strokeRect(x, y, width, height);
-      
-      ctx.fillStyle = color;
-      const text = `${prediction.class} ${Math.round(prediction.score * 100)}%`;
-      ctx.font = 'bold 18px Arial';
-      const textMetrics = ctx.measureText(text);
-      const textWidth = textMetrics.width;
-      const textHeight = 28;
-      
-      ctx.fillRect(x, y - textHeight, textWidth + 16, textHeight);
-      ctx.fillStyle = '#000000';
-      ctx.fillText(text, x + 8, y - 8);
-    });
-  };
-
-  const analyzeResults = (predictions) => {
-    if (predictions.length === 0) {
-      setAnalysis({
-        total: 0,
-        message: 'Tidak ada objek terdeteksi'
-      });
-      return;
-    }
-
-    const objectCounts = {};
-    let totalConfidence = 0;
-    let highestConfidence = { class: '', score: 0 };
-
-    predictions.forEach(pred => {
-      objectCounts[pred.class] = (objectCounts[pred.class] || 0) + 1;
-      totalConfidence += pred.score;
-      if (pred.score > highestConfidence.score) {
-        highestConfidence = { class: pred.class, score: pred.score };
-      }
-    });
-
-    const avgConfidence = (totalConfidence / predictions.length * 100).toFixed(1);
-
-    setAnalysis({
-      total: predictions.length,
-      uniqueObjects: Object.keys(objectCounts).length,
-      objectCounts,
-      avgConfidence,
-      highestConfidence,
-      message: 'Deteksi berhasil!'
-    });
-  };
-
-  const downloadResult = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const link = document.createElement('a');
-    link.download = `detection-result-${Date.now()}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
-  };
-
-  const reset = () => {
-    setPredictions([]);
-    setAnalysis(null);
-    setImageSrc(null);
-    setError(null);
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <style>
-          {`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          `}
-        </style>
-        <div style={styles.loadingBox}>
-          <div style={styles.spinner}></div>
-          <p style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-            Memuat Model AI...
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>
-            Mohon tunggu, sedang mengunduh COCO-SSD model
-          </p>
-        </div>
+  // --- RENDER ---
+  if (loading) return (
+    <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div className="spinner" style={{ border: '4px solid #4f46e5', borderTopColor: 'transparent', borderRadius: '50%', width: 50, height: 50, animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }}></div>
+        <p>Mengunduh Neural Network...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div style={styles.container}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      
       <div style={styles.wrapper}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>🎯 AI Object Detection</h1>
-          <p style={styles.subtitle}>Deteksi objek secara real-time dengan teknologi YOLO & SSD</p>
-        </div>
+        <header style={styles.header}>
+          <h1 style={{ fontSize: '3rem', fontWeight: '800', marginBottom: '0.5rem' }}>Visionary AI</h1>
+          <p style={{ opacity: 0.7 }}>Sistem Deteksi Objek Cerdas Berbasis Web</p>
+        </header>
 
-        {error && (
-          <div style={styles.errorBox}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-              <AlertCircle size={24} style={{ flexShrink: 0 }} />
-              <div>
-                <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>Error</p>
-                <p style={{ fontSize: '0.9rem' }}>{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div style={styles.buttonGroup}>
-          <button
-            onClick={() => {
-              stopCamera();
-              setMode('upload');
-              reset();
-            }}
-            style={{
-              ...styles.button,
-              ...(mode === 'upload' ? styles.buttonActive : styles.buttonInactive)
-            }}
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+          <button 
+            onClick={() => { stopCamera(); setMode('upload'); }}
+            style={{ ...styles.button, background: mode === 'upload' ? 'white' : 'rgba(255,255,255,0.1)', color: mode === 'upload' ? '#1a1a2e' : 'white' }}
           >
-            <Upload size={20} />
-            Upload Gambar
+            <Upload size={18} /> Upload
           </button>
-          <button
+          <button 
             onClick={stream ? stopCamera : startCamera}
-            style={{
-              ...styles.button,
-              ...(mode === 'camera' ? styles.buttonActive : styles.buttonInactive)
-            }}
+            style={{ ...styles.button, background: mode === 'camera' ? 'white' : 'rgba(255,255,255,0.1)', color: mode === 'camera' ? '#1a1a2e' : 'white' }}
           >
-            <Camera size={20} />
-            {stream ? 'Stop Kamera' : 'Gunakan Kamera'}
+            <Camera size={18} /> {stream ? 'Matikan Kamera' : 'Buka Kamera'}
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth >= 1024 ? '2fr 1fr' : '1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem', flexWrap: 'wrap' }}>
+          {/* Main Display */}
           <div style={styles.card}>
-            <div style={styles.detectionArea}>
+            <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', minHeight: '400px' }}>
+              {isCameraLoading && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                  <p>Menyiapkan Kamera...</p>
+                </div>
+              )}
+              
               {mode === 'camera' ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  style={{ width: '100%', height: 'auto', display: 'block' }}
-                />
+                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', display: 'block' }} />
               ) : imageSrc ? (
-                <img
-                  ref={imageRef}
-                  src={imageSrc}
-                  alt="Upload"
-                  onLoad={detectFromImage}
-                  style={{ width: '100%', height: 'auto', display: 'block' }}
-                />
+                <img ref={imageRef} src={imageSrc} onLoad={() => detect(imageRef.current)} style={{ width: '100%', display: 'block' }} />
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-                  <div>
-                    <Upload size={48} style={{ margin: '0 auto 1rem' }} />
-                    <p>Upload gambar atau gunakan kamera</p>
-                    <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Mendukung format: JPG, PNG, WEBP</p>
-                  </div>
+                <div style={{ padding: '5rem', textAlign: 'center', opacity: 0.3 }}>
+                   <Camera size={64} style={{ margin: '0 auto 1rem' }} />
+                   <p>Pilih sumber input untuk memulai</p>
                 </div>
               )}
-              <canvas
-                ref={canvasRef}
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-              />
+              <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
             </div>
 
-            <div style={styles.actionButtons}>
+            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+              {mode === 'camera' && stream && (
+                <button onClick={() => detect(videoRef.current)} style={{ ...styles.button, ...styles.primaryButton }}>
+                  {detecting ? 'Memproses...' : 'Ambil & Deteksi Objek'}
+                </button>
+              )}
               {mode === 'upload' && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current.click()}
-                    style={styles.primaryButton}
-                  >
-                    Pilih Gambar
-                  </button>
-                </>
-              )}
-              {mode === 'camera' && (
-                <button
-                  onClick={detectFromCamera}
-                  disabled={detecting}
-                  style={{ ...styles.primaryButton, opacity: detecting ? 0.5 : 1 }}
-                >
-                  {detecting ? 'Mendeteksi...' : '📸 Deteksi Sekarang'}
+                <button onClick={() => fileInputRef.current.click()} style={{ ...styles.button, ...styles.primaryButton }}>
+                  Pilih Gambar dari Perangkat
                 </button>
               )}
-              {predictions.length > 0 && (
-                <button
-                  onClick={downloadResult}
-                  style={{ ...styles.primaryButton, background: 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' }}
-                >
-                  <Download size={18} /> Download
-                </button>
-              )}
-              <button onClick={reset} style={styles.secondaryButton}>
-                <RotateCcw size={18} />
-              </button>
+              <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="image/*" />
             </div>
           </div>
 
-          <div>
-            <div style={styles.resultsCard}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ZoomIn size={24} />
-                Hasil Analisis
-              </h2>
-
+          {/* Results Side */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={styles.card}>
+              <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ZoomIn size={20}/> Ringkasan</h3>
               {analysis ? (
-                <div>
-                  <div style={styles.successBox}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#86efac', fontWeight: '600' }}>
-                      <CheckCircle size={20} />
-                      {analysis.message}
-                    </div>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{analysis.total} Objek</p>
-                    <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>{analysis.uniqueObjects} jenis berbeda</p>
+                <>
+                  <div style={{ background: 'rgba(79, 70, 229, 0.2)', padding: '1rem', borderRadius: '12px', border: '1px solid #4f46e5' }}>
+                    <p style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Objek</p>
+                    <p style={{ fontSize: '2.5rem', fontWeight: '800' }}>{analysis.total}</p>
                   </div>
-
-                  <div style={styles.infoBox}>
-                    <h3 style={{ fontWeight: '600', marginBottom: '0.75rem' }}>📊 Detail Objek:</h3>
-                    <div>
-                      {Object.entries(analysis.objectCounts).map(([obj, count]) => (
-                        <div key={obj} style={styles.statRow}>
-                          <span style={{ textTransform: 'capitalize' }}>{obj}:</span>
-                          <span style={{ fontWeight: 'bold', background: 'rgba(255,255,255,0.2)', padding: '0.25rem 0.75rem', borderRadius: '8px' }}>
-                            {count}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    {Object.entries(analysis.counts).map(([name, count]) => (
+                      <div key={name} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        <span style={{ textTransform: 'capitalize' }}>{name}</span>
+                        <span style={{ fontWeight: '700' }}>{count}x</span>
+                      </div>
+                    ))}
                   </div>
-
-                  <div style={styles.infoBox}>
-                    <h3 style={{ fontWeight: '600', marginBottom: '0.75rem' }}>📈 Statistik:</h3>
-                    <div style={styles.statRow}>
-                      <span>Rata-rata Akurasi:</span>
-                      <span style={{ fontWeight: 'bold', color: '#86efac' }}>{analysis.avgConfidence}%</span>
-                    </div>
-                    <div style={styles.statRow}>
-                      <span>Paling Yakin:</span>
-                      <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{analysis.highestConfidence.class}</span>
-                    </div>
-                    <div style={styles.statRow}>
-                      <span>Keyakinan:</span>
-                      <span style={{ fontWeight: 'bold', color: '#86efac' }}>
-                        {Math.round(analysis.highestConfidence.score * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2rem 0', opacity: 0.6 }}>
-                  <AlertCircle size={48} style={{ margin: '0 auto 1rem' }} />
-                  <p>Belum ada hasil deteksi</p>
-                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    Upload gambar atau gunakan kamera untuk mulai mendeteksi objek
-                  </p>
-                </div>
-              )}
+                </>
+              ) : <p style={{ opacity: 0.5, textAlign: 'center' }}>Menunggu analisis...</p>}
             </div>
-
-            {predictions.length > 0 && (
-              <div style={{ ...styles.resultsCard, marginTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>🎯 Objek Terdeteksi:</h3>
-                <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                  {predictions.map((pred, idx) => (
-                    <div key={idx} style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: '600', textTransform: 'capitalize' }}>{pred.class}</span>
-                      <span style={{ background: '#22c55e', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                        {Math.round(pred.score * 100)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
-          <p>⚡ Powered by TensorFlow.js & COCO-SSD Model (SSD-Based)</p>
-          <p style={{ marginTop: '0.25rem' }}>🎯 Dapat mendeteksi 80+ jenis objek berbeda secara real-time</p>
-        </div>
+        {/* --- SECTION PROFIL PEMBUAT --- */}
+        <section style={styles.profileSection}>
+          <ProfileCard 
+            name="Ahmad Fauzi" 
+            role="AI Engineer" 
+            email="fauzi@example.com" 
+            github="ahmadfauzi"
+          />
+          <ProfileCard 
+            name="Siti Aminah" 
+            role="Frontend Developer" 
+            email="siti@example.com" 
+            github="sitiaminah"
+          />
+          <ProfileCard 
+            name="Budi Santoso" 
+            role="UI/UX Designer" 
+            email="budi@example.com" 
+            github="budisan"
+          />
+        </section>
+
+        <footer style={{ textAlign: 'center', opacity: 0.5, paddingBottom: '2rem', fontSize: '0.9rem' }}>
+          © 2024 Visionary Project. Built with React & TensorFlow.js
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+// Komponen Kecil untuk Profil
+const ProfileCard = ({ name, role, email, github }) => {
+  return (
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.03)',
+      borderRadius: '24px',
+      padding: '2rem',
+      textAlign: 'center',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
+      transition: 'transform 0.3s ease',
+      cursor: 'default'
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-10px)'}
+    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+    >
+      <div style={{ width: '80px', height: '80px', background: '#4f46e5', borderRadius: '50%', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}>
+        {name.charAt(0)}
+      </div>
+      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{name}</h3>
+      <p style={{ color: '#4f46e5', fontWeight: '600', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{role}</p>
+      
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+        <a href={`mailto:${email}`} style={{ color: 'white', opacity: 0.6 }}><Mail size={20}/></a>
+        <a href={`https://github.com/${github}`} style={{ color: 'white', opacity: 0.6 }}><Github size={20}/></a>
+        <a href="#" style={{ color: 'white', opacity: 0.6 }}><Linkedin size={20}/></a>
       </div>
     </div>
   );
