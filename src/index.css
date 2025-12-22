@@ -1,5 +1,4 @@
-/* index.css */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,90 +6,27 @@
 
 @layer base {
   body {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; /* Slate 50 */
+    color: #1e293b; /* Slate 800 */
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-  }
-  
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #00ff41, #00d9ff);
-    border-radius: 4px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #00ff41, #00a2ff);
   }
 }
 
-@layer utilities {
-  .text-gradient {
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  
-  .animate-in {
-    animation: animateIn 0.3s ease-out;
-  }
-  
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  
-  .animate-spin {
-    animation: spin 1s linear infinite;
+@layer components {
+  .card-modern {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden;
   }
 }
 
-@keyframes animateIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Custom Scrollbar minimalis */
+::-webkit-scrollbar {
+  width: 6px;
 }
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Grid pattern background */
-.bg-grid-pattern {
-  background-image: 
-    linear-gradient(to right, rgba(0, 255, 65, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 255, 65, 0.1) 1px, transparent 1px);
-  background-size: 50px 50px;
-}
-
-/* Glow effects */
-.glow {
-  filter: drop-shadow(0 0 10px currentColor);
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
